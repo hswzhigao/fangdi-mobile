@@ -571,38 +571,87 @@ describe('Worker routing', () => {
     expect(body.error.code).toBe('NOT_FOUND');
   });
 
-  // ── Reserved routes return NOT_FOUND ──────────────────────────────────
+  // ── Content routes: smoke tests with mocked upstream ─────────────────
 
-  it('GET /api/home returns NOT_FOUND (reserved)', async () => {
-    const res = await worker.fetch(
-      new Request('http://local.test/api/home', { method: 'GET' }),
-      {},
-    );
-    expect(res.status).toBe(404);
+  /**
+   * These tests verify that content routes return UPSTREAM_BLOCKED when
+   * the upstream returns a 412/challenge HTML. The mock simulates what
+   * fangdi.com.cn returns when WAF/challenge is active.
+   *
+   * This proves the adapters execute and map blocked responses correctly
+   * — never fabricating fake success data.
+   */
+
+  it('GET /api/home returns UPSTREAM_BLOCKED when upstream returns 412', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response('', { status: 412, statusText: 'Precondition Failed' }),
+    ));
+    try {
+      const res = await worker.fetch(
+        new Request('http://local.test/api/home', { method: 'GET' }),
+        {},
+      );
+      expect(res.status).toBe(502);
+      const body = await res.json();
+      expect(body.ok).toBe(false);
+      expect(body.error.code).toBe('UPSTREAM_BLOCKED');
+      expect(body.error.fallbackUrl).toContain('fangdi.com.cn');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
-  it('GET /api/notices returns NOT_FOUND (reserved)', async () => {
-    const res = await worker.fetch(
-      new Request('http://local.test/api/notices', { method: 'GET' }),
-      {},
-    );
-    expect(res.status).toBe(404);
+  it('GET /api/trade returns UPSTREAM_BLOCKED when upstream returns challenge HTML', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response('<!DOCTYPE html><html><body>Challenge</body></html>', { status: 200 }),
+    ));
+    try {
+      const res = await worker.fetch(
+        new Request('http://local.test/api/trade', { method: 'GET' }),
+        {},
+      );
+      expect(res.status).toBe(502);
+      const body = await res.json();
+      expect(body.ok).toBe(false);
+      expect(body.error.code).toBe('UPSTREAM_BLOCKED');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
-  it('GET /api/trade returns NOT_FOUND (reserved)', async () => {
-    const res = await worker.fetch(
-      new Request('http://local.test/api/trade', { method: 'GET' }),
-      {},
-    );
-    expect(res.status).toBe(404);
+  it('GET /api/lease returns success with static data', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('should not be called')));
+    try {
+      const res = await worker.fetch(
+        new Request('http://local.test/api/lease', { method: 'GET' }),
+        {},
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.ok).toBe(true);
+      expect(body.data.faqs).toBeInstanceOf(Array);
+      expect(body.data.downloads).toBeInstanceOf(Array);
+      expect(body.data.links).toBeInstanceOf(Array);
+      expect(body.data.limitation).toBeTruthy();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
-  it('GET /api/lease returns NOT_FOUND (reserved)', async () => {
-    const res = await worker.fetch(
-      new Request('http://local.test/api/lease', { method: 'GET' }),
-      {},
-    );
-    expect(res.status).toBe(404);
+  it('GET /api/notices?kind=invalid returns BAD_REQUEST', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('should not be called')));
+    try {
+      const res = await worker.fetch(
+        new Request('http://local.test/api/notices?kind=invalid', { method: 'GET' }),
+        {},
+      );
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.ok).toBe(false);
+      expect(body.error.code).toBe('BAD_REQUEST');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('GET /api/captcha returns INTERNAL_ERROR without DB binding', async () => {
@@ -751,12 +800,27 @@ describe('Worker routing', () => {
   });
 
   it('paths with query params containing URLs are not proxied', async () => {
-    const res = await worker.fetch(
-      new Request('http://local.test/api/home?url=https://evil.com', { method: 'GET' }),
-      {},
-    );
-    // Should be NOT_FOUND, not a proxy.
-    expect(res.status).toBe(404);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response('', { status: 412 }),
+    ));
+    try {
+      const res = await worker.fetch(
+        new Request('http://local.test/api/home?url=https://evil.com', { method: 'GET' }),
+        {},
+      );
+      // Route is valid but the extra `url` param is ignored by the adapter
+      // (it never constructs a URL from user input). The mock returns 412 → UPSTREAM_BLOCKED.
+      const body = await res.json();
+      expect(body.ok).toBe(false);
+      // Should NOT be a proxy response — no data leaked from the evil URL.
+      expect(body.data).toBeUndefined();
+      // The error should not contain the evil URL.
+      if (body.error.fallbackUrl) {
+        expect(body.error.fallbackUrl).not.toContain('evil.com');
+      }
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   // ── CORS on non-OPTIONS responses ─────────────────────────────────────

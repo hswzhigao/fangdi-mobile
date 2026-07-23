@@ -13,6 +13,13 @@ import { D1CaptchaStore } from './captcha/session-store';
 import { CaptchaService } from './captcha/service';
 import { RateLimiter } from './captcha/rate-limiter';
 
+// ── Public content adapters ──────────────────────────────────────────────────
+
+import { getHome } from './upstream/home';
+import { getNotices } from './upstream/notices';
+import { getTrade } from './upstream/trade';
+import { getLease } from './upstream/lease';
+
 export interface Env {
   DB?: D1Database;
   CAPTCHA_SALT?: string;
@@ -174,17 +181,15 @@ function mapServiceError(
 // ── Register routes ─────────────────────────────────────────────────────────
 
 route('GET', '/api/health', handleHealth);
+route('GET', '/api/home', (req, _env, _url) => getHome(req));
+route('GET', '/api/notices', (req, _env, url) => getNotices(url, req));
+route('GET', '/api/trade', (req, _env, _url) => getTrade(req));
+route('GET', '/api/lease', (req, _env, _url) => getLease(req));
 route('GET', '/api/captcha', handleCaptcha);
 route('POST', '/api/captcha/refresh', handleCaptchaRefresh);
 
 // Routes reserved for later tasks — not yet implemented.
 // Returning NOT_FOUND (not fake data) until adapters are built.
-const RESERVED_GET_ROUTES = [
-  '/api/home',
-  '/api/notices',
-  '/api/trade',
-  '/api/lease',
-];
 const RESERVED_POST_ROUTES = [
   '/api/new-house/search',
   '/api/old-house/search',
@@ -225,21 +230,19 @@ export default {
         }
       }
 
-      // Check reserved routes — return NOT_FOUND (not fake data)
-      if (method === 'GET') {
-        if (RESERVED_GET_ROUTES.includes(pathname)) {
-          return jsonError('NOT_FOUND', undefined, undefined, request);
-        }
-        if (pathname === '/api/old-house/market-summary') {
-          return jsonError('NOT_FOUND', undefined, undefined, request);
-        }
-        if (matchesParameterizedGet(pathname)) {
+      // Check reserved POST routes — return NOT_FOUND (not fake data)
+      if (method === 'POST') {
+        if (RESERVED_POST_ROUTES.includes(pathname)) {
           return jsonError('NOT_FOUND', undefined, undefined, request);
         }
       }
 
-      if (method === 'POST') {
-        if (RESERVED_POST_ROUTES.includes(pathname)) {
+      // Check parameterized GET routes (details)
+      if (method === 'GET') {
+        if (pathname === '/api/old-house/market-summary') {
+          return jsonError('NOT_FOUND', undefined, undefined, request);
+        }
+        if (matchesParameterizedGet(pathname)) {
           return jsonError('NOT_FOUND', undefined, undefined, request);
         }
       }
