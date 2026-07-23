@@ -10,15 +10,19 @@
   "packageManager": "npm@10.9.4",
   "scripts": {
     "dev": "wrangler dev --config backend/wrangler.toml",
-    "build:worker": "cd backend && wrangler deploy --dry-run --outdir ../../dist-worker",
-    "build:worker:prod": "cd backend && wrangler deploy --dry-run --outdir ../../dist-worker-prod",
+    "build:worker": "cd backend && wrangler deploy --dry-run --outdir ../dist-worker",
+    "build:worker:prod": "cd backend && wrangler deploy --dry-run --outdir ../dist-worker-prod",
     "dev:frontend": "cd frontend && npm run dev",
     "build:frontend": "cd frontend && npm run build",
     "build": "npm run build:worker && npm run build:frontend",
     "typecheck": "cd frontend && npx vue-tsc --noEmit && cd ../backend && npx tsc --noEmit",
     "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "cd backend && npm test",
-    "test:frontend": "cd frontend && npm test"
+    "test:frontend": "cd frontend && npm test",
+    "smoke": "node scripts/smoke-api.mjs",
+    "smoke:lifecycle": "node --test scripts/smoke-lifecycle.test.mjs",
+    "check-secrets": "node scripts/check-secrets.mjs",
+    "check-secrets:test": "node --test scripts/check-secrets.test.mjs"
   },
   "devDependencies": {
     "wrangler": "3.114.17"
