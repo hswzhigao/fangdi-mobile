@@ -605,12 +605,14 @@ describe('Worker routing', () => {
     expect(res.status).toBe(404);
   });
 
-  it('GET /api/captcha returns NOT_FOUND (reserved)', async () => {
+  it('GET /api/captcha returns INTERNAL_ERROR without DB binding', async () => {
     const res = await worker.fetch(
       new Request('http://local.test/api/captcha', { method: 'GET' }),
       {},
     );
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error.code).toBe('INTERNAL_ERROR');
   });
 
   it('GET /api/old-house/market-summary returns NOT_FOUND (reserved)', async () => {
@@ -637,12 +639,14 @@ describe('Worker routing', () => {
     expect(res.status).toBe(404);
   });
 
-  it('POST /api/captcha/refresh returns NOT_FOUND (reserved)', async () => {
+  it('POST /api/captcha/refresh returns INTERNAL_ERROR without DB binding', async () => {
     const res = await worker.fetch(
       new Request('http://local.test/api/captcha/refresh', { method: 'POST' }),
       {},
     );
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error.code).toBe('INTERNAL_ERROR');
   });
 
   // ── Parameterized routes ──────────────────────────────────────────────
