@@ -8,4 +8,62 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: var(--van-background-2);
+}
+
+/* Safe area padding for bottom tab bar */
+.van-tabbar {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Minimum touch target size */
+a, button, .van-button, .van-cell, .van-tabbar-item, .van-grid-item {
+  min-height: 44px;
+}
+
+/* Horizontal scroll for dense data (statistics tables) */
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Responsive: 320px minimum width base */
+@media (max-width: 320px) {
+  .metrics-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Responsive: narrow mobile (320-375px) */
+@media (min-width: 321px) and (max-width: 375px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Responsive: tablet+ (430px and above) */
+@media (min-width: 431px) {
+  .metrics-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+}
+
+/* Truncate long titles at 2 lines */
+.van-card__title,
+.van-cell__title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Attribution bar positioning complements App.vue fixed bar */
+.van-tabbar--fixed {
+  bottom: 28px;
+}
+
+/* Page content padding accounts for navbar + tabbar */
+.van-nav-bar--fixed + * {
+  margin-top: 46px;
 }
