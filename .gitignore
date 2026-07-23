@@ -1,31 +1,47 @@
-# Dependencies and build outputs
+# Dependencies
 node_modules/
-frontend/node_modules/
-backend/node_modules/
-frontend/dist/
-frontend/coverage/
-backend/coverage/
-dist/
-build/
+.pnpm-store/
+frontend/pkg/
 
-# Local environment and credentials
+# Agent scratch
+.superpowers/
+
+# Logs
+logs/
+*.log
+
+# Environment files (all .env variants except examples)
 .env
 .env.*
 !.env.example
-frontend/.env
-backend/.env
 
-# Wrangler / local runtime state
-.wrangler/
-
-# Isolated worktrees
-.worktrees/
-worktrees/
-
-# Agent scratch and review artifacts
-.superpowers/
-
-# OS/editor files
-.DS_Store
-.vscode/
+# IDE
 .idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Build output
+build/
+dist/
+dist-worker/
+dist-worker-prod/
+frontend/dist/
+
+# Local planning docs
+docs/plans/
+
+# Worktrees
+.worktrees/
+
+# Wrangler state
+.wrangler/
+backend/.wrangler/
+backend/metadata.json

@@ -1,0 +1,5 @@
+# Pinme config file
+# Project name (required)
+project_name = "fangdi-mobile-7569"
+frontend_url = "https://d902d242.pinme.dev"
+api_url = "https://fangdi-mobile-7569.api.pinme.pro"

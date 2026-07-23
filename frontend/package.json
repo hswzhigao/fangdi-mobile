@@ -1,0 +1,28 @@
+{
+  "name": "fangdi-mobile-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "vant": "^4.9.0",
+    "vue": "^3.4.0",
+    "vue-router": "^4.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.5",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "@vue/tsconfig": "^0.5.0",
+    "typescript": "5.9.3",
+    "vite": "5.4.21",
+    "vitest": "^3.0.0",
+    "vue-tsc": "^2.0.0",
+    "jsdom": "^24.0.0"
+  }
+}

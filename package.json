@@ -1,0 +1,26 @@
+{
+  "name": "fangdi-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "packageManager": "npm@10.9.4",
+  "scripts": {
+    "dev": "wrangler dev --config backend/wrangler.toml",
+    "build:worker": "cd backend && wrangler deploy --dry-run --outdir ../../dist-worker",
+    "build:worker:prod": "cd backend && wrangler deploy --dry-run --outdir ../../dist-worker-prod",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build",
+    "build": "npm run build:worker && npm run build:frontend",
+    "typecheck": "cd frontend && npx vue-tsc --noEmit && cd ../backend && npx tsc --noEmit",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm test"
+  },
+  "devDependencies": {
+    "wrangler": "3.114.17"
+  }
+}
