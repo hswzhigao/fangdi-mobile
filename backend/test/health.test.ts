@@ -31,17 +31,20 @@ describe('health endpoint', () => {
     });
   });
 
-  it('OPTIONS /api/health returns 204 with CORS headers', async () => {
+  it('OPTIONS /api/health returns 204 with CORS headers for allowed origin', async () => {
     const response = await worker.fetch(
-      new Request('http://local.test/api/health', { method: 'OPTIONS' }),
+      new Request('http://local.test/api/health', {
+        method: 'OPTIONS',
+        headers: { Origin: 'http://localhost:5173' },
+      }),
       {},
     );
 
     expect(response.status).toBe(204);
-    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:5173');
   });
 
-  it('unknown route returns 404', async () => {
+  it('unknown route returns NOT_FOUND', async () => {
     const response = await worker.fetch(
       new Request('http://local.test/api/unknown', { method: 'GET' }),
       {},
@@ -49,10 +52,11 @@ describe('health endpoint', () => {
     const body = await response.json();
 
     expect(response.status).toBe(404);
-    expect(body.error).toBe('Not found');
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe('NOT_FOUND');
   });
 
-  it('POST /api/health returns 404', async () => {
+  it('POST /api/health returns NOT_FOUND', async () => {
     const response = await worker.fetch(
       new Request('http://local.test/api/health', { method: 'POST' }),
       {},
@@ -60,6 +64,7 @@ describe('health endpoint', () => {
     const body = await response.json();
 
     expect(response.status).toBe(404);
-    expect(body.error).toBe('Not found');
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe('NOT_FOUND');
   });
 });
