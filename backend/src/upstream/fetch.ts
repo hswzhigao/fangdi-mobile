@@ -21,6 +21,11 @@ export const FALLBACK_URLS: Record<string, string> = {
   '/api/notices': `${UPSTREAM_BASE}/`,
   '/api/trade': `${UPSTREAM_BASE}/trade/trade.html`,
   '/api/lease': `${UPSTREAM_BASE}/lease/lease.html`,
+  '/api/new-house/search': `${UPSTREAM_BASE}/new_house/new_house.html`,
+  '/api/new-house/detail': `${UPSTREAM_BASE}/new_house/new_house.html`,
+  '/api/old-house/search': `${UPSTREAM_BASE}/old_house/old_house.html`,
+  '/api/old-house/detail': `${UPSTREAM_BASE}/old_house/old_house.html`,
+  '/api/old-house/market-summary': `${UPSTREAM_BASE}/old_house/old_house.html`,
 };
 
 // ── Fetch with timeout ───────────────────────────────────────────────────────

@@ -89,3 +89,63 @@ export type LeaseData = {
 
 export const NOTICE_KINDS = ['proclamation', 'policy', 'news'] as const;
 export type NoticeKind = (typeof NOTICE_KINDS)[number];
+
+// ── House detail ────────────────────────────────────────────────────────────
+
+export type HouseDetail = {
+  id: string;
+  name: string;
+  district?: string;
+  address?: string;
+  status?: string;
+  area?: number;
+  rooms?: number;
+  updatedAt?: string;
+  detailUrl?: string;
+};
+
+// ── Search filters ──────────────────────────────────────────────────────────
+
+export const PROPERTY_TYPES = ['residential', 'office', 'commercial', 'other'] as const;
+export type PropertyType = (typeof PROPERTY_TYPES)[number];
+
+export const HOUSE_STATUSES = ['available', 'sold', 'all'] as const;
+export type HouseStatus = (typeof HOUSE_STATUSES)[number];
+
+export type NewHouseFilter = {
+  district?: string;
+  propertyType?: PropertyType;
+  status?: HouseStatus;
+  minArea?: number;
+  maxArea?: number;
+  projectName?: string;
+  page: number;
+  pageSize: number;
+  captchaSession?: string;
+  captchaText?: string;
+};
+
+export type OldHouseFilter = {
+  district?: string;
+  minArea?: number;
+  maxArea?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  rooms?: number;
+  propertyType?: PropertyType;
+  keyword?: string;
+  page: number;
+  pageSize: number;
+  captchaSession?: string;
+  captchaText?: string;
+};
+
+// ── Market summary (old-house yesterday sell) ────────────────────────────────
+
+export type MarketSummary = {
+  asOf?: string;
+  sellCount?: number;
+  sellArea?: number;
+  totalAmount?: number;
+  averagePrice?: number;
+};

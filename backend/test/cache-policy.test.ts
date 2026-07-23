@@ -156,9 +156,13 @@ describe('getCacheTTL', () => {
     expect(getCacheTTL('/api/old-house/xyz-789', res)).toBe(0);
   });
 
-  it('returns 0 for market-summary route', () => {
+  it('returns 300 (5 min) for market-summary route', () => {
     const res = new Response('{}', { status: 200 });
-    expect(getCacheTTL('/api/old-house/market-summary', res)).toBe(0);
+    expect(getCacheTTL('/api/old-house/market-summary', res)).toBe(300);
+  });
+
+  it('CACHE_TTL constant contains market-summary with 300s', () => {
+    expect(CACHE_TTL['/api/old-house/market-summary']).toBe(300);
   });
 });
 

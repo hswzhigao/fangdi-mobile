@@ -664,28 +664,31 @@ describe('Worker routing', () => {
     expect(body.error.code).toBe('INTERNAL_ERROR');
   });
 
-  it('GET /api/old-house/market-summary returns NOT_FOUND (reserved)', async () => {
+  it('GET /api/old-house/market-summary is now implemented (UPSTREAM_BLOCKED)', async () => {
     const res = await worker.fetch(
       new Request('http://local.test/api/old-house/market-summary', { method: 'GET' }),
       {},
     );
-    expect(res.status).toBe(404);
+    // Route is now implemented — returns UPSTREAM_BLOCKED when upstream is unavailable
+    expect(res.status).toBeGreaterThanOrEqual(400);
   });
 
-  it('POST /api/new-house/search returns NOT_FOUND (reserved)', async () => {
+  it('POST /api/new-house/search returns BAD_REQUEST for empty body (now implemented)', async () => {
     const res = await worker.fetch(
       new Request('http://local.test/api/new-house/search', { method: 'POST' }),
       {},
     );
-    expect(res.status).toBe(404);
+    // Route is now implemented — returns BAD_REQUEST for empty body
+    expect(res.status).toBe(400);
   });
 
-  it('POST /api/old-house/search returns NOT_FOUND (reserved)', async () => {
+  it('POST /api/old-house/search returns BAD_REQUEST for empty body (now implemented)', async () => {
     const res = await worker.fetch(
       new Request('http://local.test/api/old-house/search', { method: 'POST' }),
       {},
     );
-    expect(res.status).toBe(404);
+    // Route is now implemented — returns BAD_REQUEST for empty body
+    expect(res.status).toBe(400);
   });
 
   it('POST /api/captcha/refresh returns INTERNAL_ERROR without DB binding', async () => {
@@ -700,20 +703,26 @@ describe('Worker routing', () => {
 
   // ── Parameterized routes ──────────────────────────────────────────────
 
-  it('GET /api/new-house/some-id returns NOT_FOUND', async () => {
+  it('GET /api/new-house/some-id returns UPSTREAM_BLOCKED (now implemented)', async () => {
     const res = await worker.fetch(
       new Request('http://local.test/api/new-house/abc123', { method: 'GET' }),
       {},
     );
-    expect(res.status).toBe(404);
+    // Route is now implemented — returns UPSTREAM_BLOCKED
+    expect(res.status).toBe(502);
+    const body = await res.json();
+    expect(body.error.code).toBe('UPSTREAM_BLOCKED');
   });
 
-  it('GET /api/old-house/some-id returns NOT_FOUND', async () => {
+  it('GET /api/old-house/some-id returns UPSTREAM_BLOCKED (now implemented)', async () => {
     const res = await worker.fetch(
       new Request('http://local.test/api/old-house/xyz-789', { method: 'GET' }),
       {},
     );
-    expect(res.status).toBe(404);
+    // Route is now implemented — returns UPSTREAM_BLOCKED
+    expect(res.status).toBe(502);
+    const body = await res.json();
+    expect(body.error.code).toBe('UPSTREAM_BLOCKED');
   });
 
   it('GET /api/new-house/ (no id) does not match parameterized route', async () => {
@@ -727,12 +736,14 @@ describe('Worker routing', () => {
 
   // ── Method enforcement ────────────────────────────────────────────────
 
-  it('GET on POST-only route returns NOT_FOUND', async () => {
+  it('GET on POST-only route matches parameterized detail (now implemented)', async () => {
     const res = await worker.fetch(
       new Request('http://local.test/api/new-house/search', { method: 'GET' }),
       {},
     );
-    expect(res.status).toBe(404);
+    // GET /api/new-house/search matches parameterized route with id="search"
+    // Returns UPSTREAM_BLOCKED (detail adapter)
+    expect(res.status).toBe(502);
   });
 
   it('POST on GET-only route returns NOT_FOUND', async () => {

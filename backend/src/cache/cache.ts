@@ -15,9 +15,10 @@
 /** TTL in seconds for each cacheable route. */
 export const CACHE_TTL: Record<string, number> = {
   '/api/home': 60,
-  '/api/notices': 300, // 5 min
-  '/api/trade': 300,   // 5 min
-  '/api/lease': 3600,  // 1 hour
+  '/api/notices': 300,                // 5 min
+  '/api/trade': 300,                  // 5 min
+  '/api/lease': 3600,                 // 1 hour
+  '/api/old-house/market-summary': 300, // 5 min (verified public data)
 };
 
 /**
@@ -49,6 +50,10 @@ export function getCacheTTL(route: string, response: Response): number {
 
   // Never cache captcha, search, or detail routes.
   if (NO_CACHE_ROUTES.has(route)) return 0;
+
+  // Market-summary is a verified public-data GET with its own 5-min TTL.
+  // Must be checked before the detail catch-all below.
+  if (route === '/api/old-house/market-summary') return CACHE_TTL[route] ?? 0;
 
   // Check if route starts with detail paths.
   if (route.startsWith('/api/new-house/') && route !== '/api/new-house/search') return 0;

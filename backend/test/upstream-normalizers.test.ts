@@ -524,3 +524,57 @@ describe('normalizeNotice', () => {
     expect(normalizeNotice({})).toBeNull();
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// normalizeMarketSummary (old-house market summary normalizer)
+// ═══════════════════════════════════════════════════════════════════════════
+
+import { normalizeMarketSummary } from '../src/upstream/old-house';
+import {
+  VALID_MARKET_SUMMARY_RESPONSE,
+  VALID_MARKET_SUMMARY_ALTERNATE,
+  EMPTY_MARKET_SUMMARY_RESPONSE,
+  MALFORMED_MARKET_SUMMARY,
+  UNRELATED_GENERIC_MARKET_SUMMARY,
+} from './fixtures/search-fixtures';
+
+describe('normalizeMarketSummary', () => {
+  it('extracts verified fields (sellcount, sellArea, totalAmount, averagePrice)', () => {
+    const result = normalizeMarketSummary(VALID_MARKET_SUMMARY_RESPONSE);
+    expect(result).not.toBeNull();
+    expect(result!.sellCount).toBe(256);
+    expect(result!.sellArea).toBe(22000.5);
+    expect(result!.totalAmount).toBe(1200000000);
+    expect(result!.averagePrice).toBe(54545);
+    expect(result!.asOf).toBe('2026-07-22');
+  });
+
+  it('accepts case-variant aliases (sellCount, sellarea, totalamount, avgPrice)', () => {
+    const result = normalizeMarketSummary(VALID_MARKET_SUMMARY_ALTERNATE);
+    expect(result).not.toBeNull();
+    expect(result!.sellCount).toBe(180);
+    expect(result!.sellArea).toBe(15000);
+    expect(result!.totalAmount).toBe(800000000);
+    expect(result!.averagePrice).toBe(53333);
+    expect(result!.asOf).toBe('2026-07-22');
+  });
+
+  it('returns null for unrelated generic keys (count, area, amount, avgprice)', () => {
+    const result = normalizeMarketSummary(UNRELATED_GENERIC_MARKET_SUMMARY);
+    expect(result).toBeNull();
+  });
+
+  it('returns null for empty/missing data', () => {
+    expect(normalizeMarketSummary(EMPTY_MARKET_SUMMARY_RESPONSE)).toBeNull();
+  });
+
+  it('returns null for malformed data (wrong types)', () => {
+    expect(normalizeMarketSummary(MALFORMED_MARKET_SUMMARY)).toBeNull();
+  });
+
+  it('returns null for non-object input', () => {
+    expect(normalizeMarketSummary(null)).toBeNull();
+    expect(normalizeMarketSummary('string')).toBeNull();
+    expect(normalizeMarketSummary(123)).toBeNull();
+  });
+});

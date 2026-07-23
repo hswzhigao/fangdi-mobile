@@ -7,7 +7,7 @@
 
 import { jsonOk, jsonError } from './http/envelope';
 import { handleOptions } from './http/cors';
-import { validateId } from './http/validation';
+import { validateId, validateCaptchaText } from './http/validation';
 import type { CaptchaPurpose } from './captcha/types';
 import { D1CaptchaStore } from './captcha/session-store';
 import { CaptchaService } from './captcha/service';
@@ -19,6 +19,12 @@ import { getHome } from './upstream/home';
 import { getNotices } from './upstream/notices';
 import { getTrade } from './upstream/trade';
 import { getLease } from './upstream/lease';
+import { listNewHouses, getNewHouseDetail } from './upstream/new-house';
+import { listOldHouses, getOldHouseDetail, getOldHouseMarketSummary } from './upstream/old-house';
+
+// ── Validation ───────────────────────────────────────────────────────────────
+
+import { validateNewHouseFilter, validateOldHouseFilter } from './validation/search';
 
 export interface Env {
   DB?: D1Database;
@@ -178,6 +184,169 @@ function mapServiceError(
   }
 }
 
+// ── CAPTCHA helper for search routes ──────────────────────────────────────────
+
+/**
+ * Validate a CAPTCHA session for a search request.
+ *
+ * Checks: purpose match (fixed per route), session validity, attempt count.
+ * On success, returns the validated purpose. On failure, returns the error Response.
+ */
+async function validateSearchCaptcha(
+  service: CaptchaService,
+  captchaSession: string,
+  captchaText: string,
+  expectedPurpose: CaptchaPurpose,
+  rateLimited: Response | null,
+  req: Request,
+): Promise<{ ok: true; purpose: CaptchaPurpose } | { ok: false; response: Response }> {
+  if (rateLimited) {
+    return { ok: false, response: rateLimited };
+  }
+
+  // Validate captcha text format
+  const textErr = validateCaptchaText(captchaText);
+  if (textErr) {
+    return { ok: false, response: jsonError('BAD_REQUEST', textErr, undefined, req) };
+  }
+
+  // Validate session
+  const result = await service.validateAndIncrement(captchaSession, expectedPurpose);
+  if (!result.ok) {
+    return { ok: false, response: mapServiceError(result.error, req) };
+  }
+
+  return { ok: true, purpose: result.data.purpose };
+}
+
+// ── Search handlers ───────────────────────────────────────────────────────────
+
+/**
+ * POST /api/new-house/search
+ *
+ * Accepts a JSON body with NewHouseFilter fields. Validates all fields,
+ * optionally validates CAPTCHA session, and calls the new-house adapter.
+ */
+async function handleNewHouseSearch(req: Request, env: Env, _url: URL): Promise<Response> {
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return jsonError('BAD_REQUEST', '请求体格式不正确', undefined, req);
+  }
+
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    return jsonError('BAD_REQUEST', '请求体必须为 JSON 对象', undefined, req);
+  }
+
+  const parsed = validateNewHouseFilter(body);
+  if (!parsed.ok) {
+    return jsonError('BAD_REQUEST', parsed.error, undefined, req);
+  }
+
+  // Rate limit every valid complex search request, before optional CAPTCHA.
+  const rateLimited = checkRateLimit(req);
+  if (rateLimited) return rateLimited;
+
+  const filter = parsed.value;
+
+  // If captcha is provided, validate it
+  if (filter.captchaSession && filter.captchaText) {
+    const service = getCaptchaService(env);
+    if (!service) {
+      return jsonError('INTERNAL_ERROR', undefined, undefined, req);
+    }
+    const captchaResult = await validateSearchCaptcha(
+      service, filter.captchaSession, filter.captchaText,
+      'new-house', rateLimited, req,
+    );
+    if (!captchaResult.ok) return captchaResult.response;
+    // Delete session on successful captcha validation
+    await service.deleteSession(filter.captchaSession);
+  }
+
+  return listNewHouses(filter, env);
+}
+
+/**
+ * GET /api/new-house/:id
+ *
+ * Validates the ID and fetches detail from the new-house adapter.
+ * No caching. No body logging.
+ */
+async function handleNewHouseDetail(req: Request, env: Env, url: URL): Promise<Response> {
+  const pathname = url.pathname;
+  const id = pathname.replace('/api/new-house/', '');
+  const err = validateId(id);
+  if (err) {
+    return jsonError('BAD_REQUEST', err, undefined, req);
+  }
+  return getNewHouseDetail(id, env);
+}
+
+/**
+ * POST /api/old-house/search
+ *
+ * Accepts a JSON body with OldHouseFilter fields. Validates all fields,
+ * optionally validates CAPTCHA session, and calls the old-house adapter.
+ */
+async function handleOldHouseSearch(req: Request, env: Env, _url: URL): Promise<Response> {
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return jsonError('BAD_REQUEST', '请求体格式不正确', undefined, req);
+  }
+
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    return jsonError('BAD_REQUEST', '请求体必须为 JSON 对象', undefined, req);
+  }
+
+  const parsed = validateOldHouseFilter(body);
+  if (!parsed.ok) {
+    return jsonError('BAD_REQUEST', parsed.error, undefined, req);
+  }
+
+  // Rate limit every valid complex search request, before optional CAPTCHA.
+  const rateLimited = checkRateLimit(req);
+  if (rateLimited) return rateLimited;
+
+  const filter = parsed.value;
+
+  // If captcha is provided, validate it
+  if (filter.captchaSession && filter.captchaText) {
+    const service = getCaptchaService(env);
+    if (!service) {
+      return jsonError('INTERNAL_ERROR', undefined, undefined, req);
+    }
+    const captchaResult = await validateSearchCaptcha(
+      service, filter.captchaSession, filter.captchaText,
+      'old-house', rateLimited, req,
+    );
+    if (!captchaResult.ok) return captchaResult.response;
+    // Delete session on successful captcha validation
+    await service.deleteSession(filter.captchaSession);
+  }
+
+  return listOldHouses(filter, env);
+}
+
+/**
+ * GET /api/old-house/:id
+ *
+ * Validates the ID and fetches detail from the old-house adapter.
+ * No caching. No body logging.
+ */
+async function handleOldHouseDetail(req: Request, env: Env, url: URL): Promise<Response> {
+  const pathname = url.pathname;
+  const id = pathname.replace('/api/old-house/', '');
+  const err = validateId(id);
+  if (err) {
+    return jsonError('BAD_REQUEST', err, undefined, req);
+  }
+  return getOldHouseDetail(id, env);
+}
+
 // ── Register routes ─────────────────────────────────────────────────────────
 
 route('GET', '/api/health', handleHealth);
@@ -187,32 +356,21 @@ route('GET', '/api/trade', (req, _env, _url) => getTrade(req));
 route('GET', '/api/lease', (req, _env, _url) => getLease(req));
 route('GET', '/api/captcha', handleCaptcha);
 route('POST', '/api/captcha/refresh', handleCaptchaRefresh);
-
-// Routes reserved for later tasks — not yet implemented.
-// Returning NOT_FOUND (not fake data) until adapters are built.
-const RESERVED_POST_ROUTES = [
-  '/api/new-house/search',
-  '/api/old-house/search',
-];
-const PARAMETERIZED_GET_PREFIXES = [
-  '/api/new-house/',
-  '/api/old-house/',
-];
-
-function matchesParameterizedGet(pathname: string): boolean {
-  for (const prefix of PARAMETERIZED_GET_PREFIXES) {
-    if (pathname.startsWith(prefix) && pathname.length > prefix.length) {
-      return true;
-    }
-  }
-  return false;
-}
+route('POST', '/api/new-house/search', handleNewHouseSearch);
+route('POST', '/api/old-house/search', handleOldHouseSearch);
+route('GET', '/api/old-house/market-summary', (req, _env, _url) => getOldHouseMarketSummary(req));
 
 // ── Fetch ───────────────────────────────────────────────────────────────────
 
+const DETAIL_GET_PREFIXES: [string, typeof handleNewHouseDetail][] = [
+  ['/api/new-house/', handleNewHouseDetail],
+  ['/api/old-house/', handleOldHouseDetail],
+];
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const { pathname } = new URL(request.url);
+    const url = new URL(request.url);
+    const pathname = url.pathname;
     const method = request.method;
 
     // OPTIONS preflight — CORS
@@ -226,24 +384,16 @@ export default {
       if (methodMap) {
         const handler = methodMap.get(pathname);
         if (handler) {
-          return await handler(request, env, new URL(request.url));
+          return await handler(request, env, url);
         }
       }
 
-      // Check reserved POST routes — return NOT_FOUND (not fake data)
-      if (method === 'POST') {
-        if (RESERVED_POST_ROUTES.includes(pathname)) {
-          return jsonError('NOT_FOUND', undefined, undefined, request);
-        }
-      }
-
-      // Check parameterized GET routes (details)
+      // Parameterized GET detail routes
       if (method === 'GET') {
-        if (pathname === '/api/old-house/market-summary') {
-          return jsonError('NOT_FOUND', undefined, undefined, request);
-        }
-        if (matchesParameterizedGet(pathname)) {
-          return jsonError('NOT_FOUND', undefined, undefined, request);
+        for (const [prefix, handler] of DETAIL_GET_PREFIXES) {
+          if (pathname.startsWith(prefix) && pathname.length > prefix.length) {
+            return await handler(request, env, url);
+          }
         }
       }
 
