@@ -14,9 +14,19 @@ const router = createRouter({
       component: () => import('../views/NewHouse.vue'),
     },
     {
+      path: '/new-house/:id',
+      name: 'NewHouseDetail',
+      component: () => import('../views/HouseDetail.vue'),
+    },
+    {
       path: '/old-house',
       name: 'OldHouse',
       component: () => import('../views/OldHouse.vue'),
+    },
+    {
+      path: '/old-house/:id',
+      name: 'OldHouseDetail',
+      component: () => import('../views/HouseDetail.vue'),
     },
     {
       path: '/lease',

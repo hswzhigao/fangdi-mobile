@@ -197,6 +197,29 @@ describe('ErrorState', () => {
     });
     expect(wrapper.find('.fallback-link').exists()).toBe(false);
   });
+
+  it('shows RATE_LIMITED error with retry button and retry-later message', () => {
+    const error = { code: 'RATE_LIMITED' as const, message: '请求过于频繁，请稍后重试', retryable: true };
+    const wrapper = mount(ErrorState, {
+      props: { error },
+      global: {
+        stubs: {
+          VanEmpty: {
+            template: '<div class="van-empty-stub">{{ description }}</div>',
+            props: ['description'],
+          },
+          VanButton: {
+            template: '<button class="van-button-stub"><slot /></button>',
+            props: ['type', 'size', 'loading', 'disabled'],
+          },
+        },
+      },
+    });
+    expect(wrapper.find('.error-state').exists()).toBe(true);
+    expect(wrapper.find('.van-empty-stub').text()).toContain('稍后重试');
+    // RATE_LIMITED is retryable — retry button must be present
+    expect(wrapper.find('.van-button-stub').exists()).toBe(true);
+  });
 });
 
 describe('FallbackLink', () => {

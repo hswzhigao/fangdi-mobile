@@ -174,6 +174,50 @@ export interface HouseDetail {
   detailUrl?: string;
 }
 
+// ── Search filter types ─────────────────────────────────────────────────────
+
+export const PROPERTY_TYPES = ['residential', 'office', 'commercial', 'other'] as const;
+export type PropertyType = (typeof PROPERTY_TYPES)[number];
+
+export const HOUSE_STATUSES = ['available', 'sold', 'all'] as const;
+export type HouseStatus = (typeof HOUSE_STATUSES)[number];
+
+export interface NewHouseFilter {
+  district?: string;
+  propertyType?: PropertyType;
+  status?: HouseStatus;
+  minArea?: number;
+  maxArea?: number;
+  projectName?: string;
+  page: number;
+  pageSize: number;
+  captchaSession?: string;
+  captchaText?: string;
+}
+
+export interface OldHouseFilter {
+  district?: string;
+  minArea?: number;
+  maxArea?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  rooms?: number;
+  propertyType?: PropertyType;
+  keyword?: string;
+  page: number;
+  pageSize: number;
+  captchaSession?: string;
+  captchaText?: string;
+}
+
+// ── Captcha ─────────────────────────────────────────────────────────────────
+
+export interface CaptchaData {
+  sessionId: string;
+  image: string;
+  expiresAt: string;
+}
+
 // ── Fixed fallback URLs (original site) ───────────────────────────────────────
 
 export const FALLBACK_URLS: Record<string, string> = {
